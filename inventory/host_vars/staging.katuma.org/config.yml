@@ -9,4 +9,4 @@ certbot_domains:
   - staging.katuma.org
   - app.katuma.org
 
-server_name: "*.katuma.org"
+server_name: "alpha.katuma.org app.katuma.org"
