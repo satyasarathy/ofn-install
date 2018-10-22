@@ -6,7 +6,11 @@ admin_email: info@coopdevs.org
 mail_domain: katuma.org
 
 certbot_domains:
+  - appstaging.katuma.org
   - staging.katuma.org
-  - app.katuma.org
 
-server_name: "alpha.katuma.org app.katuma.org"
+# certbot revoke --cert-path /etc/letsencrypt/live/staging.katuma.org/cert.pem
+# rm /etc/nginx/sites-available/ofn_443.conf
+server_name: "staging.katuma.org appstaging.katuma.org"
+
+certbot_cert_name: "{{ certbot_domains | first }}"

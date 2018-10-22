@@ -61,7 +61,10 @@
       vars:
         domain_name: "{{ certbot_domains | default([domain]) | join(',') }}"
         letsencrypt_email: "{{ developer_email }}"
+        cert_name: "{{ certbot_cert_name }}"
+        letsencrypt_staging: yes
       when: inventory_hostname != "local_vagrant"
+      tags: certbot
 
     - role: jdauphant.nginx
       become: yes
