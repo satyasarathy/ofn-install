@@ -13,4 +13,4 @@ certbot_domains:
 # rm /etc/nginx/sites-available/ofn_443.conf
 server_name: "staging.katuma.org appstaging.katuma.org"
 
-certbot_cert_name: "{{ certbot_domains | first }}"
+certbot_cert_name: appstaging.katuma.org
