@@ -8,8 +8,9 @@
 - src: jdauphant.nginx
   version: v2.8.1
 
-- src: coopdevs.certbot_nginx
-  version: 0.0.1
+- src: https://github.com/coopdevs/certbot_nginx
+  version: multiple-domains
+  name: certbot_nginx
 
 - src: oefenweb.swapfile
   version: v2.0.7
