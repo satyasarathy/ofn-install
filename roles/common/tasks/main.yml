@@ -17,7 +17,6 @@
       - python-pycurl
       - python-psycopg2
       - python3-psycopg2
-      - python-software-properties
 
       # unknown why or if needed
       # The playbooks run without these dependencies,
@@ -44,14 +43,11 @@
       - memcached
   tags: packages
 
-# Remove monit if still installed. The notified handlers will run only once
-# (when the main task triggers a change by removing the config file)
-- name: clean up monit
-  file:
-    state: absent
-    path: /etc/monit/conf.d/{{ app }}
+- name: add memcached configuration
+  template:
+    src: memcached.conf.j2
+    dest: /etc/memcached.conf
+    mode: 0644
   become: yes
-  become_user: root
   notify:
-    - stop monit service
-    - remove monit package
+    - restart memcached

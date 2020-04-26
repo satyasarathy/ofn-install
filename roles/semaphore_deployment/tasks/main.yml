@@ -1,8 +1,15 @@
 --- # Set up Ansible and restricted deployment user for deployment via Semaphore
 
-- name: install ansible
+- name: add ansible ppa
+  apt_repository:
+    repo: ppa:ansible/ansible
+  become: yes
+
+- name: install ansible # noqa 403
   apt:
+    update_cache: yes
     name: ansible
+    state: latest
   become: yes
 
 - name: create deployment user
@@ -19,6 +26,7 @@
     dest: "/home/{{ deployment_user }}/deploy"
     owner: root
     mode: 0700
+  tags: provision_deploy_script
 
 - name: add sudoers file
   template:
@@ -33,10 +41,6 @@
     force: yes
   tags: fetch_ofn_install
 
-- name: install community modules
-  shell: "/home/{{ deployment_user }}/ofn-install/bin/setup"
-  tags: update_community_modules
-
 - name: create secure directory for keys
   file:
     path: "/home/{{ user }}/keys"
@@ -50,12 +54,14 @@
     creates: "/home/{{ user }}/keys/semaphore.pub"
 
 - name: copy public key
-  shell: "cat /home/{{ user }}/keys/semaphore.pub"
+  slurp:
+    src: "/home/{{ user }}/keys/semaphore.pub"
   register: semaphore_public_key
+  changed_when: False
 
 - name: add semaphore public key to deployment user's authorized_keys
   authorized_key:
     user: "{{ deployment_user }}"
-    key: "{{ semaphore_public_key.stdout }}"
+    key: "{{ semaphore_public_key.content | b64decode }}"
     state: present
     key_options: 'restrict,command="sudo /home/{{ deployment_user }}/deploy \"$SSH_ORIGINAL_COMMAND\""'

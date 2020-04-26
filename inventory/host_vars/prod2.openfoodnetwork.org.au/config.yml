@@ -1,8 +1,0 @@
----
-
-domain: prod2.openfoodnetwork.org.au
-rails_env: production
-
-admin_email: maikel@openfoodnetwork.org.au
-
-unicorn_timeout: 120

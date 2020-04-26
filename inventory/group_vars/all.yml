@@ -27,13 +27,23 @@ l10n_git_version: HEAD
 #----------------------------------------------------------------------
 # Default values (should be overridden in each server config)
 rails_env: staging
+host_id: ofn-staging
 admin_email: "admin@{{ domain }}"
 
 
 #----------------------------------------------------------------------
 # security role variables
 security_autoupdate_mail_to: "{{ developer_email }}"
+security_autoupdate_blacklist:
+  - nginx
+  - nginx-common
 
+#----------------------------------------------------------------------
+# Database backup variables
+default_backup_filename: backup
+local_backup_path: "../backups/{{ default_backup_filename }}.sql.gz"
+remote_backup_dir: "/var/lib/postgresql"
+remote_backup_path: "{{ remote_backup_dir }}/{{ default_backup_filename }}.sql.gz"
 
 #----------------------------------------------------------------------
 # swapfile variables
@@ -41,12 +51,14 @@ swapfile_size: false
 
 #----------------------------------------------------------------------
 # Rails variables
-ruby_version: 2.1.5
+ruby_version: 2.3.7
+
+ruby_versions:
+  - version: 2.3.7
+
 env:
   RAILS_ENV: "{{ rails_env }}"
   PATH: "{{ gem_home }}/bin:{{ ansible_env.PATH }}"
-#phantomjs: phantomjs-1.9.0-linux-x86_64
-
 
 #----------------------------------------------------------------------
 # Database variables
@@ -54,7 +66,43 @@ db: openfoodnetwork
 test_db: ofn_test
 db_user: ofn_user
 db_host: localhost
+postgres_encoding: en_US.utf8
 
+#----------------------------------------------------------------------
+# Postgresql variables
+
+# These include the default values for postgres, and some empty (extendable) values.
+# Entries marked custom_* can be defined in /host_vars files, and will be appended
+# to the defaults if present. Make sure you use the "list" notation with the dashes!
+
+default_hba_entries:
+  - {type: local, database: replication, user: ofn_data, auth_method: md5}
+  - {type: host, database: replication, user: ofn_data, address: '127.0.0.1/32', auth_method: md5}
+  - {type: local, database: all, user: postgres, auth_method: peer}
+  - {type: local, database: all, user: all, auth_method: peer}
+  - {type: host, database: all, user: all, address: '127.0.0.1/32', auth_method: md5}
+  - {type: host, database: all, user: all, address: '::1/128', auth_method: md5}
+
+custom_hba_entries: []
+
+postgresql_hba_entries: "{{ default_hba_entries + custom_hba_entries }}"
+
+postgres_listen_addresses:
+  - localhost
+
+postgres_shared_preload_libraries:
+  - pg_stat_statements
+  - wal2json
+
+postgresql_global_config_options:
+  - option: listen_addresses
+    value: "{{ postgres_listen_addresses | join(',') }}"
+  - option: shared_preload_libraries
+    value: "{{ postgres_shared_preload_libraries | join(',') }}"
+  - option: include_dir
+    value: "conf.d"
+
+debezium_version: "0.10.0.Final"
 
 #----------------------------------------------------------------------
 # App variables
@@ -81,8 +129,46 @@ log_path: "{{ shared_path }}/log"
 pid_path: "{{ shared_path }}/pids"
 sock_path: "{{ shared_path }}/sock"
 l10n_path: "{{ shared_path }}/l10n"
-git_post_receive: "{{ current_path }}/.git/hooks/post-receive"
 
+
+#----------------------------------------------------------------------
+# Logrotate options
+
+logrotate_applications:
+  - name: rails
+    definitions:
+      - logs:
+          - "{{ current_path }}/log/*.log"
+        options:
+          - weekly        # rotate weekly
+          - rotate 4      # delete logs older than 4 rotations
+          - compress      # compress rotated logs
+          - missingok     # ignore missing logs
+          - notifempty    # don't rotate if empty
+          - copytruncate  # copy the log, then empty the active logfile
+
+  - name: unicorn
+    definitions:
+      - logs:
+          - "{{ shared_path }}/log/unicorn.log"
+        options:
+          - weekly        # rotate weekly
+          - rotate 4      # delete logs older than 4 rotations
+          - compress      # compress rotated logs
+          - missingok     # ignore missing logs
+          - notifempty    # don't rotate if empty
+          - copytruncate  # copy the log, then empty the active logfile
+
+  - name: postgres_queries
+    definitions:
+      - logs:
+          - "/var/log/pg_log/*.log"
+        options:
+          - daily         # run daily
+          - rotate 0      # don't rotate files
+          - nocreate      # don't replace log files
+        lastaction:       # delete log files older than 1 day
+          - "find /var/log/pg_log/ -name '*.log' -mtime +1 -exec rm {};"
 
 #----------------------------------------------------------------------
 # Unicorn variables
@@ -94,13 +180,43 @@ unicorn_pid: "{{ pid_path }}/unicorn.pid"
 unicorn_sock: "{{ sock_path }}/unicorn.{{ app }}.sock"
 unicorn_workers: 2
 unicorn_timeout: 30
+unicorn_env_vars: |
+  KILL_UNICORNS=true
 
+#----------------------------------------------------------------------
+# Memcached variables
+memcached_value_max_megabytes: 4
 
+#----------------------------------------------------------------------
+# Core devs: users named here will have SSH access on all instances
+
+core_devs:
+  - maikel
+  - pau
+  - enricostn
+  - luis
+  - matt
+  - kristina
 
 #----------------------------------------------------------------------
 # nginx config
 
 nginx_official_repo: True
+
+nginx_extra_root_params:
+  - load_module modules/ngx_http_brotli_filter_module.so
+  - load_module modules/ngx_http_brotli_static_module.so
+
+nginx_http_params:
+  - sendfile "on"
+  - tcp_nopush "on"
+  - tcp_nodelay "on"
+  - keepalive_timeout "65"
+  - log_format nginx '$remote_addr - $remote_user [$time_local] ' '"$request" $status $body_bytes_sent $request_time ' '"$http_referer" "$http_user_agent"'
+  - access_log "{{nginx_log_dir}}/access.log" nginx
+  - "error_log {{nginx_log_dir}}/error.log error"
+  - server_tokens off
+  - types_hash_max_size 2048
 
 nginx_sites:
   default:
@@ -121,7 +237,7 @@ nginx_sites:
     - |
       listen 80;
       listen [::]:80;
-      server_name {{ domain }};
+      server_name {{ certbot_domains | default([domain]) | join(' ') }};
 
       add_header X-Content-Type-Options nosniff always;
       add_header X-Xss-Protection "1; mode=block" always;
@@ -139,7 +255,7 @@ nginx_sites:
     - |
       listen 443 ssl http2;
       listen [::]:443 ssl http2;
-      server_name {{ domain }};
+      server_name {{ certbot_domains | default([domain]) | join(' ') }};
       root {{ app_root }}/public;
 
       ssl_certificate      /etc/letsencrypt/live/{{ certbot_cert_name | default(domain) }}/fullchain.pem;
@@ -149,10 +265,20 @@ nginx_sites:
       add_header X-Xss-Protection "1; mode=block" always;
 
       gzip on;
+      gzip_types text/css text/javascript text/plain application/javascript application/x-javascript application/json;
       gzip_disable "msie6";
+
+      brotli on;
+      brotli_types text/css text/javascript text/plain application/javascript application/x-javascript application/json;
 
       try_files $uri/index.html $uri @unicorn;
       location @unicorn {
+        if (-f /etc/nginx/maintenance.html) {
+          return 503;
+        }
+
+        gzip_proxied no-cache no-store private expired auth;
+        proxy_http_version 1.1;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -162,13 +288,23 @@ nginx_sites:
 
       location ~ ^/(assets)/ {
         gzip_static on;
+        brotli_static on;
         expires max;
         add_header Cache-Control public;
       }
 
-      error_page 500 502 503 504 /500.html;
+      error_page 500 502 504 /500.html;
+      error_page 503 @maintenance;
+
+      location @maintenance {
+        root /etc/nginx;
+        try_files /maintenance.html =503;
+      }
+
       client_max_body_size 4G;
-      keepalive_timeout 60;
+      keepalive_timeout {{ unicorn_timeout }};
+      proxy_read_timeout {{ unicorn_timeout }};
+      proxy_send_timeout {{ unicorn_timeout }};
 
       include /etc/nginx/sites-available/ofn/*;
 

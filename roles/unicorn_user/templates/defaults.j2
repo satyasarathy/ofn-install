@@ -18,3 +18,13 @@ SMTP_PASSWORD={{ smtp_password }}
 {% if mail_bcc is defined %}
   MAIL_BCC={{ mail_bcc }}
 {% endif %}
+
+{% if db_user is defined %}
+OFN_DB_USERNAME={{ db_user }}
+{% endif %}
+
+{% if db_password is defined %}
+OFN_DB_PASSWORD={{ db_password }}
+{% endif %}
+
+MEMCACHED_VALUE_MAX_MEGABYTES={{ memcached_value_max_megabytes }}

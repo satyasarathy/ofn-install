@@ -5,21 +5,27 @@
 local_vagrant ansible_host=127.0.0.1 ansible_user=vagrant ansible_port=2222 ansible_ssh_private_key_file=~/.vagrant.d/insecure_private_key ansible_ssh_common_args='-o StrictHostKeyChecking=no'
 
 [lxc]
-local.ofn.org
+ofn.local
+
+[lexi]
+local_lexi ansible_host=10.10.100.10 ansible_ssh_common_args='-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR'
+
+[travis]
+local_travis
 
 [local:children]
 vagrant
 lxc
+lexi
+travis
 
 #------------------------------------------------------------------------------
 # Australia
 
 [au-prod]
-www.openfoodnetwork.org.au
-prod2.openfoodnetwork.org.au
+openfoodnetwork.org.au ansible_host=43.239.97.238
 
 [au-staging]
-staging1.openfoodnetwork.com.au
 staging.openfoodnetwork.org.au
 
 [au:children]
@@ -27,13 +33,13 @@ au-prod
 au-staging
 
 #------------------------------------------------------------------------------
-# Ireland
+# Canada
 
-[ie-prod]
-openfoodireland.eu
+[ca-prod]
+openfoodnetwork.ca ansible_host=68.183.204.127
 
-[ie:children]
-ie-prod
+[ca:children]
+ca-prod
 
 #------------------------------------------------------------------------------
 # India
@@ -43,6 +49,15 @@ www.openfoodnetwork.in
 
 [in:children]
 in-prod
+
+#------------------------------------------------------------------------------
+# Italy
+
+[it-staging]
+staging.pixelwise.it
+
+[it:children]
+it-staging
 
 #------------------------------------------------------------------------------
 # UK
@@ -118,16 +133,61 @@ www.openfoodnetwork.be ansible_host=51.75.124.147
 be-prod
 
 #------------------------------------------------------------------------------
+# South Africa
+
+[za-prod]
+www.openfoodnetwork.org.za
+
+[za:children]
+za-prod
+
+#------------------------------------------------------------------------------
+# Europe
+
+[europe:children]
+be-prod
+es-prod
+fr-prod
+uk-prod
+de-prod
+
+#------------------------------------------------------------------------------
+# America
+
+[america:children]
+ca-prod
+us-prod
+
+#------------------------------------------------------------------------------
+# Production Servers
+
+[all-prod:children]
+europe
+america
+au-prod
+
+#------------------------------------------------------------------------------
+# Staging Servers
+
+[all-staging:children]
+au-staging
+uk-staging
+fr-staging
+es-staging
+
+#------------------------------------------------------------------------------
 # All
 
 [ofn_servers:children]
 local
 au
-ie
+ca
 in
+it
 uk
 us
 es
 fr
 de
 be
+za

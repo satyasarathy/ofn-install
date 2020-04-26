@@ -2,14 +2,17 @@
 
 - name: remove current path
   file:
-    dest={{ current_path }}
-    state=absent
+    dest: "{{ current_path }}"
+    state: absent
 
 - name: copy rollback repo to current path
-  command: cp -r {{ rollback_path }} {{ current_path }} creates={{ current_path }}
+  command: cp -r {{ rollback_path }} {{ current_path }}
+  args:
+    creates: "{{ current_path }}"
 
-- name: copy rollback db to live db
-  shell: gunzip -c {{ rollback_sql_path }} | psql -h {{ db_host }} -U {{ db_user }} {{ db }}
-  notify:
-    - precompile assets
-    - restart unicorn
+- name: restore database
+  include_role:
+    name: db_restore
+    tasks_from: restore_database
+  vars:
+    database_dump_path: "{{ rollback_sql_path }}"

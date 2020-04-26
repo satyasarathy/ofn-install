@@ -1,13 +1,7 @@
-- name: stop monit service
-  service:
-    name: monit
-    state: stopped
-  become: yes
-  become_user: root
+---
 
-- name: remove monit package
-  apt:
-    pkg: monit
-    state: absent
+- name: restart memcached
+  service:
+    name: memcached
+    state: restarted
   become: yes
-  become_user: root

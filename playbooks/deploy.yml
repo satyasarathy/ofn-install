@@ -5,5 +5,58 @@
   become: yes
   become_user: "{{ unicorn_user }}"
 
-  roles:
-    - role: deploy
+  handlers:
+    - include: ../roles/shared_handlers/handlers/main.yml
+
+  tasks:
+    - name: Check we're not deploying master to production
+      pause:
+        prompt: |
+          WARNING: The current settings will deploy `master` branch to a production server!
+          Check for typos in the command if deploying a release, otherwise type YES to proceed
+      when: inventory_hostname in groups['all-prod'] and git_version == "master"
+      register: deployment_check
+      failed_when: deployment_check.user_input != "YES"
+
+    - block:
+      - include_role:
+          name: deploy
+
+      - meta: flush_handlers # Ensure handlers run successfully before reporting success
+
+      - name: Notify Slack of successful deployment
+        slack:
+          token: "T02G54U79/BF25P9F7A/DJdtYaLLUpRJPiu72d8NqgGg"
+          msg: '`{{ git_version }}` deployed to {{ inventory_hostname }}'
+          channel: "#devops-notifications"
+          username: "ansible executed by {{ lookup('env','USER') }}"
+        when: inventory_hostname not in groups['local']
+
+      - name: Notify datadog
+        uri:
+          url: "https://api.datadoghq.com/api/v1/events?api_key={{ datadog_key }}"
+          method: POST
+          body:
+            title: "Deployed"
+            text: "Successful deployment of {{ git_version }} on host: {{ inventory_hostname }} ({{ host_id | default(ansible_limit) }})"
+            host: "{{ inventory_hostname }}"
+            tags:
+              - "deployed"
+          body_format: json
+          status_code: 202
+          headers:
+            Content-Type: "application/json"
+        when: datadog_key is defined and inventory_hostname not in groups['local']
+
+      rescue:
+        - name: Notify slack of deployment failure
+          slack:
+            token: "T02G54U79/BF25P9F7A/DJdtYaLLUpRJPiu72d8NqgGg"
+            msg: 'Deployment FAILED for {{ inventory_hostname }}'
+            channel: "#devops-notifications"
+            username: "ansible executed by {{ lookup('env','USER') }}"
+          when: inventory_hostname not in groups['local']
+
+        - debug:
+            msg: Deployment failed
+          failed_when: True # Ensure Ansible returns a non-zero error code after rescue

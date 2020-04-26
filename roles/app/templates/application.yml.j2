@@ -18,11 +18,41 @@ CHECKOUT_ZONE: {{ checkout_zone }}
 
 GOOGLE_MAPS_API_KEY: {{ google_maps_api_key }}
 
-S3_BACKUPS_BUCKET: {{ s3_backups_bucket }}
+ADMIN_EMAIL: {{ admin_email }}
+ADMIN_PASSWORD: {{ admin_password }}
+
+{% if enable_rails_apm is defined %}
+DATADOG_RAILS_APM: {{ enable_rails_apm }}
+{% endif %}
+{% if s3_access_key is defined %}
 S3_ACCESS_KEY: {{ s3_access_key }}
+{% endif %}
+{% if s3_secret is defined %}
 S3_SECRET: {{ s3_secret }}
+{% endif %}
+{% if s3_region is defined %}
+S3_REGION: {{ s3_region }}
+{% endif %}
+{% if s3_backups_region is defined %}
+S3_BACKUPS_REGION: {{ s3_backups_region }}
+{% endif %}
+{% if s3_backups_bucket is defined %}
+S3_BACKUPS_BUCKET: {{ s3_backups_bucket }}
+{% endif %}
+{% if s3_images_bucket is defined %}
+S3_BUCKET: {{ s3_images_bucket }}
+{% endif %}
 
 STRIPE_CLIENT_ID: {{ stripe_client_id }}
 STRIPE_INSTANCE_SECRET_KEY: {{ stripe_instance_secret_key }}
 STRIPE_INSTANCE_PUBLISHABLE_KEY: {{ stripe_instance_publishable_key }}
 STRIPE_ENDPOINT_SECRET: {{ stripe_endpoint_secret }}
+
+{% if bugsnag_key is defined %}
+BUGSNAG_API_KEY: {{ bugsnag_key }}
+{% endif %}
+{% if bugsnag_js_key is defined %}
+BUGSNAG_JS_KEY: {{ bugsnag_js_key }}
+{% endif %}
+
+{{ custom_application_env_vars | default('') }}

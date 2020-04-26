@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 # Run the following command to set up this Vagrant box:
-# ansible-playbook site.yml -i inventory/dev --limit=vagrant
+# ansible-playbook site.yml --limit=vagrant
 
 # It takes around 20 minutes to complete the first setup/provision/deploy.
 # Your new local OFN instance will then be available at: http://localhost:8080
@@ -19,7 +19,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.box = "ubuntu/xenial64"
 
     # Set box memory.
-    vbox.customize ["modifyvm", :id, "--memory", "1792"]
+    vbox.customize ["modifyvm", :id, "--memory", "2500"]
 
     # Optimise virtualbox.
     vbox.customize [ "modifyvm", :id, "--nictype1", "virtio" ]
@@ -32,5 +32,4 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     config.ssh.insert_key = false
   end
-
 end
