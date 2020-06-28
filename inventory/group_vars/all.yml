@@ -114,7 +114,6 @@ bundle_path: "{{ unicorn_home_path }}/.rbenv/shims/bundle"
 app_path: "{{ unicorn_home_path }}/apps/{{ app }}"
 current_path: "{{ app_path }}/current"
 repo_path: "{{ app_path }}/repo"
-build_path: "{{ app_path }}/build"
 shared_path: "{{ app_path }}/shared"
 backup_path: "{{ app_path }}/backups"
 releases_path: "{{ app_path }}/releases-old"
@@ -201,6 +200,8 @@ core_devs:
 #----------------------------------------------------------------------
 # nginx config
 
+app_root: "{{ current_path }}"
+
 nginx_official_repo: True
 
 nginx_extra_root_params:
@@ -217,6 +218,12 @@ nginx_http_params:
   - "error_log {{nginx_log_dir}}/error.log error"
   - server_tokens off
   - types_hash_max_size 2048
+
+nginx_acme_challenge_config: |+
+  location '/.well-known/acme-challenge' {
+    default_type "text/plain";
+    root /etc/letsencrypt/webrootauth;
+  }
 
 nginx_sites:
   default:
@@ -242,10 +249,7 @@ nginx_sites:
       add_header X-Content-Type-Options nosniff always;
       add_header X-Xss-Protection "1; mode=block" always;
 
-      location '/.well-known/acme-challenge' {
-        default_type "text/plain";
-        root /etc/letsencrypt/webrootauth;
-      }
+      {{ nginx_acme_challenge_config }}
 
       location / {
         return 301 https://$host$request_uri;
