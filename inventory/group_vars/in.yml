@@ -1,0 +1,19 @@
+---
+
+# See https://github.com/openfoodfoundation/ofn-install/wiki/Setup for more info
+checkout_zone: India
+country_code: IN
+currency: INR
+locale: en-IN
+language: en_IN.UTF-8
+language_packages:
+  - language-pack-en-base
+l10n_repo: https://github.com/satyasarathy/l10n_in-1.git
+timezone: Mumbai
+
+# Used for the LetsEncrypt email setting
+developer_email: satyasarathy@gmail.com
+
+# Users listed here will have their key from /files/keys added to the unicorn_user
+users_sysadmin:
+  - satyasarathy_gmail_com

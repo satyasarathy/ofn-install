@@ -3,6 +3,12 @@
 - name: fetch secrets
   hosts: ofn_servers
   remote_user: "{{ user }}"
+  vars:
+      gcp_project: ultra-sunset-273914
+      gcp_cred_kind: serviceaccount
+      gcp_cred_file: ../ofn_india_cred_file.json
+      zone: "us-central1-a"
+      region: "us-central1"
 
   tasks:
     - name: update local secrets files
