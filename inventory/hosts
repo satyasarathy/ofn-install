@@ -58,7 +58,7 @@ ca-prod
 # India
 
 [in-prod]
-www.openfoodnetwork.in
+openfoodindia.org ansible_host=35.225.147.125
 
 [in:children]
 in-prod

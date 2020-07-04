@@ -9,7 +9,13 @@
 - name: python check
   hosts: ofn_servers
   gather_facts: no
-  remote_user: root
+  remote_user: satyasarathy_gmail_com
+  vars:
+      gcp_project: ultra-sunset-273914
+      gcp_cred_kind: serviceaccount
+      gcp_cred_file: ../ofn_india_cred_file.json
+      zone: "us-central1-a"
+      region: "us-central1"
   tasks:
     - name: Install python 2.7
       become: yes
@@ -19,7 +25,7 @@
 # Add the default user and ssh keys as root
 - name: set up default_user
   hosts: ofn_servers
-  remote_user: root
+  remote_user: satyasarathy_gmail_com
   roles:
     - role: default_user
       become: yes
